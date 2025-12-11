@@ -3,8 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -40,10 +38,45 @@ func main() {
 		log.Fatal("Unable to declare and bind pause channel: ", err)
 	}
 
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
+	gameState := gamelogic.NewGameState(userName)
 
-	fmt.Println("Shutting down client...")
+	for {
+		inputs := gamelogic.GetInput()
+		if len(inputs) == 0 {
+			continue
+		}
+		input := inputs[0]
+
+		if input == "spawn" {
+			err = gameState.CommandSpawn(inputs)
+			if err != nil {
+				log.Println(err)
+			}
+		} else if input == "move" {
+			_, err = gameState.CommandMove(inputs)
+			if err != nil {
+				log.Println(err)
+			} else {
+				println("Movement successful!")
+			}
+		} else if input == "status" {
+			gameState.CommandStatus()
+		} else if input == "help" {
+			gamelogic.PrintClientHelp()
+		} else if input == "spam" {
+			fmt.Println("Spamming not allowed yet!")
+		} else if input == "quit" {
+			fmt.Println("Exiting...")
+			break
+		} else {
+			fmt.Println("Unrecognized command")
+		}
+	}
+
+	// signalChan := make(chan os.Signal, 1)
+	// signal.Notify(signalChan, os.Interrupt)
+	// <-signalChan
+
+	// fmt.Println("Shutting down client...")
 
 }
