@@ -28,6 +28,17 @@ func main() {
 		log.Fatal("Unable to create connection channel: ", err)
 	}
 
+	_, _, err = pubsub.DeclareAndBind(
+		connection,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		routing.GameLogSlug+".*",
+		pubsub.DURABLE,
+	)
+	if err != nil {
+		log.Fatal("Unable to declare and bind pause channel: ", err)
+	}
+
 	for {
 		inputs := gamelogic.GetInput()
 		if len(inputs) == 0 {
