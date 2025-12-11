@@ -17,14 +17,14 @@ func main() {
 	connectionString := "amqp://guest:guest@localhost:5672/"
 	connection, err := amqp.Dial(connectionString)
 	if err != nil {
-		log.Fatal("Unable to start amqp connection")
+		log.Fatal("Unable to start amqp connection: ", err)
 	}
 	defer connection.Close()
 	fmt.Println("Connection succesfull!")
 
 	channel, err := connection.Channel()
 	if err != nil {
-		log.Fatal("Unable to create connection channel")
+		log.Fatal("Unable to create connection channel: ", err)
 	}
 
 	pubsub.PublishJSON(
