@@ -27,26 +27,9 @@ func main() {
 		log.Fatal("Unable to get name: ", err)
 	}
 
-	_, _, err = pubsub.DeclareAndBind(
-		connection,
-		routing.ExchangePerilDirect,
-		routing.PauseKey+"."+userName,
-		routing.PauseKey,
-		pubsub.TRANSIENT,
-	)
+	publishChannel, err := connection.Channel()
 	if err != nil {
-		log.Fatal("Unable to declare and bind pause channel: ", err)
-	}
-
-	movesChannel, _, err := pubsub.DeclareAndBind(
-		connection,
-		routing.ExchangePerilTopic,
-		routing.ArmyMovesPrefix+"."+userName,
-		routing.ArmyMovesPrefix+".*",
-		pubsub.TRANSIENT,
-	)
-	if err != nil {
-		log.Fatal("Unable to declare and bind moves channel: ", err)
+		log.Fatal("Unable to create a publish channel: ", err)
 	}
 
 	gameState := gamelogic.NewGameState(userName)
@@ -94,7 +77,7 @@ func main() {
 				continue
 			}
 			err = pubsub.PublishJSON[gamelogic.ArmyMove](
-				movesChannel,
+				publishChannel,
 				routing.ExchangePerilTopic,
 				routing.ArmyMovesPrefix+"."+userName,
 				armyMove,
