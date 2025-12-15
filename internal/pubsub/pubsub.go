@@ -8,6 +8,21 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+type SimpleQueueType int
+
+const (
+	DURABLE SimpleQueueType = iota
+	TRANSIENT
+)
+
+type AckType int
+
+const (
+	ACK AckType = iota
+	NACK_REQUEUE
+	NACK_DISCARD
+)
+
 func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 	jsonVal, err := json.Marshal(val)
 	if err != nil {
@@ -31,13 +46,6 @@ func PublishJSON[T any](ch *amqp.Channel, exchange, key string, val T) error {
 
 	return nil
 }
-
-type SimpleQueueType int
-
-const (
-	DURABLE SimpleQueueType = iota
-	TRANSIENT
-)
 
 func DeclareAndBind(
 	conn *amqp.Connection,
@@ -77,7 +85,7 @@ func SubscribeJSON[T any](
 	queueName,
 	key string,
 	queueType SimpleQueueType,
-	handler func(T),
+	handler func(T) AckType,
 ) error {
 	channel, queue, err := DeclareAndBind(
 		conn,
@@ -103,8 +111,19 @@ func SubscribeJSON[T any](
 			if err != nil {
 				fmt.Printf("Unable to unmarshal message body: %v", err)
 			}
-			handler(unmarshalledMessage)
-			message.Ack(false)
+			ack := handler(unmarshalledMessage)
+			switch ack {
+			case ACK:
+				message.Ack(false)
+				fmt.Println("Message acknowledged")
+			case NACK_REQUEUE:
+				message.Nack(false, true)
+				fmt.Println("Message not acknowledged and requeued")
+			case NACK_DISCARD:
+				message.Nack(false, false)
+				fmt.Println("Message not acknowledged and discarded")
+			}
+
 		}
 	}()
 
