@@ -38,6 +38,17 @@ func main() {
 		log.Fatal("Unable to declare and bind pause channel: ", err)
 	}
 
+	movesChannel, _, err := pubsub.DeclareAndBind(
+		connection,
+		routing.ExchangePerilTopic,
+		routing.ArmyMovesPrefix+"."+userName,
+		routing.ArmyMovesPrefix+".*",
+		pubsub.TRANSIENT,
+	)
+	if err != nil {
+		log.Fatal("Unable to declare and bind moves channel: ", err)
+	}
+
 	gameState := gamelogic.NewGameState(userName)
 
 	err = pubsub.SubscribeJSON(
@@ -50,6 +61,18 @@ func main() {
 	)
 	if err != nil {
 		log.Fatal("Unable to subscribe to pause queue: ", err)
+	}
+
+	err = pubsub.SubscribeJSON(
+		connection,
+		routing.ExchangePerilTopic,
+		routing.ArmyMovesPrefix+"."+userName,
+		routing.ArmyMovesPrefix+".*",
+		pubsub.TRANSIENT,
+		handlerMove(gameState),
+	)
+	if err != nil {
+		log.Fatal("Unable to subscribe to move queue: ", err)
 	}
 
 	for {
@@ -65,12 +88,22 @@ func main() {
 				log.Println(err)
 			}
 		} else if input == "move" {
-			_, err = gameState.CommandMove(inputs)
+			armyMove, err := gameState.CommandMove(inputs)
 			if err != nil {
 				log.Println(err)
-			} else {
-				println("Movement successful!")
+				continue
 			}
+			err = pubsub.PublishJSON[gamelogic.ArmyMove](
+				movesChannel,
+				routing.ExchangePerilTopic,
+				routing.ArmyMovesPrefix+"."+userName,
+				armyMove,
+			)
+			if err != nil {
+				log.Printf("Unable to publish move: %v", err)
+				continue
+			}
+			println("Movement executed and published successfully!")
 		} else if input == "status" {
 			gameState.CommandStatus()
 		} else if input == "help" {
