@@ -52,10 +52,22 @@ func main() {
 		routing.ArmyMovesPrefix+"."+userName,
 		routing.ArmyMovesPrefix+".*",
 		pubsub.TRANSIENT,
-		handlerMove(gameState),
+		handlerMove(gameState, publishChannel),
 	)
 	if err != nil {
 		log.Fatal("Unable to subscribe to move queue: ", err)
+	}
+
+	err = pubsub.SubscribeJSON(
+		connection,
+		routing.ExchangePerilTopic,
+		routing.WarRecognitionsPrefix,
+		routing.WarRecognitionsPrefix+".*",
+		pubsub.DURABLE,
+		handlerWar(gameState),
+	)
+	if err != nil {
+		log.Fatal("Unable to subscribe to war queue: ", err)
 	}
 
 	for {
