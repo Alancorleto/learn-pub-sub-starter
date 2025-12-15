@@ -3,6 +3,7 @@ package pubsub
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -94,17 +95,17 @@ func SubscribeJSON[T any](
 		return err
 	}
 
-	go func() error {
+	go func() {
+		defer channel.Close()
 		for message := range delivery {
 			var unmarshalledMessage T
 			err := json.Unmarshal(message.Body, &unmarshalledMessage)
 			if err != nil {
-				return err
+				fmt.Printf("Unable to unmarshal message body: %v", err)
 			}
 			handler(unmarshalledMessage)
 			message.Ack(false)
 		}
-		return nil
 	}()
 
 	return nil
