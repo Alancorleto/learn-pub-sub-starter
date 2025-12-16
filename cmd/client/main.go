@@ -64,7 +64,7 @@ func main() {
 		routing.WarRecognitionsPrefix,
 		routing.WarRecognitionsPrefix+".*",
 		pubsub.DURABLE,
-		handlerWar(gameState),
+		handlerWar(gameState, publishChannel),
 	)
 	if err != nil {
 		log.Fatal("Unable to subscribe to war queue: ", err)
@@ -88,7 +88,7 @@ func main() {
 				log.Println(err)
 				continue
 			}
-			err = pubsub.PublishJSON[gamelogic.ArmyMove](
+			err = pubsub.PublishJSON(
 				publishChannel,
 				routing.ExchangePerilTopic,
 				routing.ArmyMovesPrefix+"."+userName,

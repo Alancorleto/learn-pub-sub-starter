@@ -20,7 +20,7 @@ func handlerMove(gs *gamelogic.GameState, publishChannel *amqp.Channel) func(gam
 		case gamelogic.MoveOutComeSafe:
 			return pubsub.ACK
 		case gamelogic.MoveOutcomeMakeWar:
-			err := pubsub.PublishJSON[gamelogic.RecognitionOfWar](
+			err := pubsub.PublishJSON(
 				publishChannel,
 				routing.ExchangePerilTopic,
 				routing.WarRecognitionsPrefix+"."+move.Player.Username,
