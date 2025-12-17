@@ -28,15 +28,34 @@ func main() {
 		log.Fatal("Unable to create connection channel: ", err)
 	}
 
-	_, _, err = pubsub.DeclareAndBind(
+	// _, _, err = pubsub.DeclareAndBind(
+	// 	connection,
+	// 	routing.ExchangePerilTopic,
+	// 	routing.GameLogSlug,
+	// 	routing.GameLogSlug+".*",
+	// 	pubsub.DURABLE,
+	// )
+	// if err != nil {
+	// 	log.Fatal("Unable to declare and bind pause channel: ", err)
+	// }
+
+	err = pubsub.SubscribeGob(
 		connection,
 		routing.ExchangePerilTopic,
 		routing.GameLogSlug,
 		routing.GameLogSlug+".*",
 		pubsub.DURABLE,
+		func(log routing.GameLog) pubsub.AckType {
+			defer fmt.Printf("> ")
+			err := gamelogic.WriteLog(log)
+			if err != nil {
+				return pubsub.NACK_REQUEUE
+			}
+			return pubsub.ACK
+		},
 	)
 	if err != nil {
-		log.Fatal("Unable to declare and bind pause channel: ", err)
+		log.Fatal("Unable to subscribe to game_logs channel: ", err)
 	}
 
 	for {
